@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Moto Elite | Ingeniería de Software MVP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --gold: #d4af37; --dark: #0a0a0a; --gray: #151515; --white: #ffffff; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--dark); color: var(--white); scroll-behavior: smooth; }
+
+        /* NAVEGACIÓN */
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; background: rgba(0,0,0,0.95); position: fixed; width: 100%; z-index: 1000; border-bottom: 1px solid #222; }
+        .logo { font-size: 1.6rem; font-weight: 900; color: var(--gold); letter-spacing: 2px; }
+        .nav-links a, .nav-links span { color: white; text-decoration: none; margin-left: 20px; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; cursor: pointer; }
+        .cart-count { background: var(--gold); color: black; padding: 2px 6px; border-radius: 50%; font-size: 0.7rem; margin-left: 5px; }
+
+        /* HERO */
+        .hero { height: 40vh; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('https://images.pexels.com/photos/1031698/pexels-photo-1031698.jpeg?auto=compress&w=1200'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        /* GRID */
+        .container { padding: 40px 5%; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .card { background: var(--gray); border-radius: 12px; padding: 20px; border: 1px solid #222; transition: 0.3s; display: flex; flex-direction: column; }
+        .card:hover { border-color: var(--gold); transform: translateY(-5px); }
+        .img-box { width: 100%; height: 200px; border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: #000; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .btn-gold { background: var(--gold); color: black; border: none; padding: 12px; width: 100%; font-weight: 800; cursor: pointer; border-radius: 8px; text-transform: uppercase; margin-top: auto; }
+        .btn-vip { background: #1a1a1a; color: var(--gold); border: 1px solid var(--gold); padding: 10px; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 10px; }
+
+        /* MODALES */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 5000; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; }
+        .modal-content { background: white; color: black; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; position: relative; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
+
+        /* CARRITO Y FACTURA */
+        .cart-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0; font-size: 0.9rem; }
+        .invoice-box { background: white; color: black; padding: 30px; width: 340px; font-family: monospace; text-align: center; border: 2px dashed #333; }
+        #qrcode { display: flex; justify-content: center; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">APEX ELITE</div>
+    <div class="nav-links">
+        <a href="#cascos">Catálogo</a>
+        <span onclick="openModal('cart-modal')"><i class="fas fa-shopping-cart"></i><span class="cart-count" id="cart-counter">0</span></span>
+        <span id="user-display" onclick="openModal('auth-modal')">Iniciar Sesión</span>
+    </div>
+</nav>
+
+<section class="hero">
+    <h1><span>APEX</span> SMART BOUTIQUE</h1>
+    <p>SISTEMA INTEGRAL DE PROTECCIÓN Y GESTIÓN</p>
+</section>
+
+<section class="container" id="cascos">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h2 style="color: var(--gold);">COLECCIÓN ELITE</h2>
+        <button class="btn-vip" style="width: auto; padding: 5px 15px;" onclick="openModal('vip-modal')">MEMBRESÍA VIP</button>
+    </div>
+    <div class="grid" id="product-grid"></div>
+</section>
+
+<section class="container" id="comunidad" style="background: #080808;">
+    <h2 style="margin-bottom: 20px;">RESEÑAS DE PILOTOS</h2>
+    <div id="reviews-container" style="margin-bottom: 20px;"></div>
+    <button class="btn-gold" style="width: auto; padding: 10px 25px;" onclick="handleReviewClick()">ESCRIBIR RESEÑA</button>
+</section>
+
+<div class="modal" id="auth-modal">
+    <div class="modal-content">
+        <h2 id="auth-title">INICIAR SESIÓN</h2>
+        <input type="email" id="auth-email" placeholder="Email">
+        <input type="password" id="auth-pass" placeholder="Contraseña">
+        <button class="btn-gold" onclick="processAuth()">CONTINUAR</button>
+        <p style="text-align: center; margin-top: 15px; font-size: 0.8rem; cursor: pointer;" onclick="toggleAuth()">¿No tienes cuenta? Regístrate</p>
+        <button onclick="closeModal('auth-modal')" style="width:100%; border:none; background:none; margin-top:10px;">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal" id="cart-modal">
+    <div class="modal-content">
+        <h2>TU CARRITO</h2>
+        <div id="cart-items-list" style="margin: 20px 0; max-height: 300px; overflow-y: auto;"></div>
+        <div style="border-top: 2px solid #000; padding-top: 10px; font-weight: bold;">
+            TOTAL: $<span id="cart-total">0</span>
+        </div>
+        <button class="btn-gold" style="margin-top: 20px;" onclick="goToPayment()">PROCEDER AL PAGO</button>
+        <button onclick="closeModal('cart-modal')" style="width:100%; border:none; background:none; margin-top:10px;">Seguir Comprando</button>
+    </div>
+</div>
+
+<div class="modal" id="payment-modal">
+    <div class="modal-content">
+        <h2>FINALIZAR COMPRA</h2>
+        <form id="payment-form">
+            <input type="text" id="pay-name" placeholder="Nombre completo del titular" required>
+            <input type="text" placeholder="Dirección de envío (Pasto, Nariño)" required>
+            <input type="text" placeholder="Número de Tarjeta (16 dígitos)" maxlength="16" required>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" placeholder="MM/AA" maxlength="5" required>
+                <input type="password" placeholder="CVV" maxlength="3" required>
+            </div>
+            <button type="submit" class="btn-gold" style="margin-top: 15px;">PAGAR AHORA</button>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="vip-modal">
+    <div class="modal-content" style="text-align: center;">
+        <i class="fas fa-crown" style="font-size: 3rem; color: var(--gold);"></i>
+        <h2>APEX VIP CLUB</h2>
+        <p style="margin: 15px 0;">15% de descuento en todos los cascos, acceso a lanzamientos y envíos gratis.</p>
+        <p style="font-size: 1.5rem; font-weight: bold;">$29.00 / mes</p>
+        <button class="btn-gold" onclick="subscribeVIP()">SUSCRIBIRME AHORA</button>
+        <button onclick="closeModal('vip-modal')" style="width:100%; border:none; background:none; margin-top:10px;">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal" id="invoice-modal">
+    <div class="invoice-box">
+        <h3>APEX MOTO BOUTIQUE</h3>
+        <p>Ref: <span id="inv-ref"></span></p>
+        <hr>
+        <div id="inv-items" style="text-align: left; margin: 15px 0;"></div>
+        <p style="font-size: 1.2rem; font-weight: bold;">TOTAL: $<span id="inv-total"></span></p>
+        <div id="qrcode"></div>
+        <p style="font-size: 0.7rem;">Garantía activada para: <br><span id="inv-customer"></span></p>
+        <button class="btn-gold" style="margin-top: 15px;" onclick="location.reload()">FINALIZAR</button>
+    </div>
+</div>
+
+<script>
+    // ESTADO DE LA APLICACIÓN
+    let cart = [];
+    let currentUser = null;
+    let isRegisterMode = false;
+
+    // BASE DE DATOS DE PRODUCTOS (45 CASCOS + ACCESORIOS)
+    const products = [
+        { id: 1, n: "Shoei X-SPR Pro", p: 890, img: "https://images.pexels.com/photos/1031698/pexels-photo-1031698.jpeg?auto=compress&w=400" },
+        { id: 2, n: "AGV Pista GP RR", p: 1200, img: "https://images.pexels.com/photos/1327128/pexels-photo-1327128.jpeg?auto=compress&w=400" },
+        { id: 3, n: "Arai RX-7V Evo", p: 950, img: "https://images.pexels.com/photos/2568041/pexels-photo-2568041.jpeg?auto=compress&w=400" },
+        // ... (Simularemos el resto dinámicamente)
+    ];
+
+    function renderCatalog() {
+        const grid = document.getElementById('product-grid');
+        for(let i=1; i<=45; i++) {
+            const p = products[i % 3]; // Ciclar entre los 3 modelos base para ejemplo
+            grid.innerHTML += `
+                <div class="card">
+                    <div class="img-box"><img src="${p.img}" alt="Casco"></div>
+                    <small style="color:var(--gold)">PREMIUM SERIES v${i}</small>
+                    <h3>${p.n}</h3>
+                    <p style="font-size: 1.2rem; font-weight: bold; margin: 10px 0;">$${p.p}.00</p>
+                    <button class="btn-gold" onclick="addToCart('${p.n}', ${p.p})">AÑADIR AL CARRITO</button>
+                </div>`;
+        }
+    }
+
+    // LÓGICA DE USUARIO
+    function toggleAuth() {
+        isRegisterMode = !isRegisterMode;
+        document.getElementById('auth-title').innerText = isRegisterMode ? "CREAR CUENTA" : "INICIAR SESIÓN";
+    }
+
+    function processAuth() {
+        const email = document.getElementById('auth-email').value;
+        if(email) {
+            currentUser = email.split('@')[0];
+            document.getElementById('user-display').innerText = `Hola, ${currentUser}`;
+            closeModal('auth-modal');
+            alert(isRegisterMode ? "Cuenta creada con éxito." : "Bienvenido de nuevo.");
+        }
+    }
+
+    // LÓGICA DE CARRITO
+    function addToCart(name, price) {
+        cart.push({ name, price });
+        updateCartUI();
+        alert(`${name} añadido al carrito.`);
+    }
+
+    function updateCartUI() {
+        document.getElementById('cart-counter').innerText = cart.length;
+        const list = document.getElementById('cart-items-list');
+        const total = cart.reduce((acc, curr) => acc + curr.price, 0);
+        
+        list.innerHTML = cart.map(item => `
+            <div class="cart-item">
+                <span>${item.name}</span>
+                <span>$${item.price}</span>
+            </div>
+        `).join('');
+        document.getElementById('cart-total').innerText = total;
+    }
+
+    function goToPayment() {
+        if(cart.length === 0) return alert("Tu carrito está vacío.");
+        if(!currentUser) {
+            alert("Debes iniciar sesión para comprar.");
+            openModal('auth-modal');
+        } else {
+            closeModal('cart-modal');
+            openModal('payment-modal');
+        }
+    }
+
+    // LÓGICA DE PAGO Y FACTURA
+    document.getElementById('payment-form').onsubmit = (e) => {
+        e.preventDefault();
+        const name = document.getElementById('pay-name').value;
+        const ref = "APEX-" + Math.floor(Math.random()*900000);
+        const total = cart.reduce((acc, curr) => acc + curr.price, 0);
+
+        closeModal('payment-modal');
+        document.getElementById('invoice-modal').style.display = 'flex';
+        
+        document.getElementById('inv-ref').innerText = ref;
+        document.getElementById('inv-customer').innerText = name;
+        document.getElementById('inv-total').innerText = total;
+        document.getElementById('inv-items').innerHTML = cart.map(i => `<p>• ${i.name} - $${i.price}</p>`).join('');
+
+        document.getElementById('qrcode').innerHTML = "";
+        new QRCode(document.getElementById('qrcode'), {
+            text: `Ref:${ref}\nCliente:${name}\nTotal:${total}`,
+            width: 150, height: 150
+        });
+        cart = []; // Vaciar carrito tras compra
+        updateCartUI();
+    };
+
+    // COMUNIDAD
+    const reviews = [
+        { u: "MotoRider_99", t: "Increíble calidad del carbono." },
+        { u: "Valentina_KTM", t: "El envío a Pasto fue súper rápido." }
+    ];
+
+    function renderReviews() {
+        const cont = document.getElementById('reviews-container');
+        cont.innerHTML = reviews.map(r => `
+            <div style="background:#111; padding:15px; border-radius:8px; margin-bottom:10px;">
+                <p style="color:var(--gold); font-weight:bold;">@${r.u}</p>
+                <p style="font-size:0.9rem;">"${r.t}"</p>
+            </div>
+        `).join('');
+    }
+
+    function handleReviewClick() {
+        if(!currentUser) {
+            alert("Inicia sesión para escribir una reseña.");
+            openModal('auth-modal');
+        } else {
+            const txt = prompt("Escribe tu reseña:");
+            if(txt) {
+                reviews.push({ u: currentUser, t: txt });
+                renderReviews();
+            }
+        }
+    }
+
+    function subscribeVIP() {
+        if(!currentUser) {
+            openModal('auth-modal');
+        } else {
+            alert("¡Felicidades! Ahora eres miembro APEX VIP.");
+            closeModal('vip-modal');
+        }
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    window.onload = () => { renderCatalog(); renderReviews(); };
+</script>
+</body>
+</html>
